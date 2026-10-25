@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>顺路捎 · 校园快递代取撮合板</title>
+<style>
+  :root{
+    --blue:#4A90E2; --blue-d:#3a7cc4; --blue-l:#eaf3fc;
+    --bg:#f4f8fd; --card:#ffffff; --line:#e6eef7;
+    --txt:#243049; --sub:#7a8aa3; --green:#2ECC71; --orange:#F5A623;
+    --purple:#9B59B6; --red:#E74C3C; --gray:#9E9E9E;
+    --radius:14px; --shadow:0 2px 10px rgba(74,144,226,.08);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg); color:var(--txt); font-size:14px; line-height:1.5;
+    padding-bottom:64px;
+  }
+  .app{max-width:480px;margin:0 auto;min-height:100vh;position:relative;}
+  /* header */
+  .topbar{background:linear-gradient(135deg,var(--blue),#6fb0f0);color:#fff;
+    padding:18px 16px 14px;border-radius:0 0 18px 18px;box-shadow:var(--shadow);}
+  .topbar h1{margin:0;font-size:22px;letter-spacing:2px;display:flex;align-items:center;gap:8px;}
+  .topbar .sub{font-size:12px;opacity:.9;margin-top:2px;}
+  .identity{margin-top:10px;display:inline-flex;align-items:center;gap:6px;
+    background:rgba(255,255,255,.18);padding:5px 10px;border-radius:20px;font-size:12px;cursor:pointer;}
+  .identity b{font-weight:600;}
+  /* filters */
+  .filters{display:flex;flex-wrap:nowrap;gap:8px;padding:12px 12px 4px;overflow-x:auto;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .filters::-webkit-scrollbar{display:none;}
+  .filters select,.filters input{font-size:13px;padding:9px 10px;border:1px solid var(--line);
+    border-radius:10px;background:#fff;color:var(--txt);flex:0 0 auto;min-width:108px;height:40px;}
+  /* tabs */
+  .tabs{display:flex;background:var(--blue-l);margin:10px 12px 0;border-radius:12px;padding:4px;}
+  .tabs button{flex:1;border:0;background:transparent;padding:9px 0;border-radius:9px;
+    font-size:14px;color:var(--sub);font-weight:600;cursor:pointer;}
+  .tabs button.on{background:#fff;color:var(--blue);box-shadow:var(--shadow);}
+  /* list */
+  .list{padding:12px;display:flex;flex-direction:column;gap:12px;}
+  .card{background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);
+    border:1px solid var(--line);}
+  .card .row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+  .card .nm{font-weight:700;font-size:15px;}
+  .card .meta{color:var(--sub);font-size:12.5px;margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 14px;}
+  .card .meta span{display:inline-flex;align-items:center;gap:3px;}
+  .card .note{font-size:12px;color:var(--sub);margin-top:8px;background:var(--blue-l);
+    padding:6px 8px;border-radius:8px;}
+  .card .foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;}
+  .price{font-size:13px;color:var(--orange);font-weight:700;}
+  .btn{border:0;border-radius:10px;padding:12px 18px;min-height:46px;font-size:15px;font-weight:600;cursor:pointer;}
+  .btn.primary{background:var(--blue);color:#fff;}
+  .btn.primary:active{background:var(--blue-d);}
+  .btn.ghost{background:var(--blue-l);color:var(--blue);}
+  .btn.warn{background:#fff0f0;color:var(--red);}
+  .btn.green{background:#eafaf0;color:var(--green);}
+  .btn[disabled]{opacity:.5;cursor:not-allowed;}
+  .tag{font-size:11px;padding:3px 9px;border-radius:20px;color:#fff;font-weight:600;white-space:nowrap;}
+  .empty{text-align:center;color:var(--sub);padding:46px 20px;font-size:14px;}
+  .empty .ic{font-size:42px;margin-bottom:6px;}
+  .empty .tip{font-size:13px;margin:10px 0 16px;line-height:1.6;}
+  .empty .btn{display:inline-block;}
+  /* fab */
+  .fab{position:fixed;right:18px;bottom:78px;z-index:40;display:flex;flex-direction:column;align-items:flex-end;gap:10px;}
+  .fab .act{background:#fff;color:var(--blue);border:1px solid var(--line);border-radius:22px;
+    padding:10px 14px;font-size:13px;font-weight:600;box-shadow:var(--shadow);display:none;}
+  .fab .act.show{display:block;}
+  .fab .main{width:54px;height:54px;border-radius:50%;background:var(--blue);color:#fff;
+    font-size:26px;border:0;box-shadow:0 4px 14px rgba(74,144,226,.4);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  /* tabbar */
+  .tabbar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);
+    display:flex;max-width:480px;margin:0 auto;z-index:30;}
+  .tabbar button{flex:1;border:0;background:transparent;padding:10px 0 12px;font-size:11px;color:var(--sub);cursor:pointer;}
+  .tabbar button .ic{font-size:20px;display:block;}
+  .tabbar button.on{color:var(--blue);font-weight:700;}
+  /* modal */
+  .mask{position:fixed;inset:0;background:rgba(20,30,50,.45);z-index:50;display:none;align-items:flex-end;}
+  .mask.show{display:flex;}
+  .sheet{background:#fff;width:100%;max-width:480px;margin:0 auto;border-radius:18px 18px 0 0;
+    max-height:90vh;overflow:auto;animation:up .22s ease;}
+  @keyframes up{from{transform:translateY(40px);opacity:.4}to{transform:translateY(0);opacity:1}}
+  .sheet .hd{position:sticky;top:0;background:#fff;padding:14px 16px;border-bottom:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:16px;z-index:2;}
+  .sheet .bd{padding:14px 16px 24px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:13px;color:var(--sub);margin-bottom:8px;}
+  .field label .req{color:var(--red);}
+  .field input,.field select,.field textarea{width:100%;padding:12px;border:1px solid var(--line);
+    border-radius:10px;font-size:15px;background:#fff;color:var(--txt);min-height:46px;}
+  .field input.bad,.field select.bad{border-color:var(--red);background:#fff6f6;}
+  .field .err{color:var(--red);font-size:11.5px;margin-top:4px;display:none;}
+  .field .err.show{display:block;}
+  .switch{display:flex;align-items:center;justify-content:space-between;background:var(--blue-l);
+    padding:10px 12px;border-radius:10px;}
+  .switch .hint{font-size:11px;color:var(--sub);}
+  .toggle{width:46px;height:26px;border-radius:14px;background:#cdd9e8;position:relative;cursor:pointer;transition:.2s;}
+  .toggle.on{background:var(--blue);}
+  .toggle::after{content:"";position:absolute;width:20px;height:20px;border-radius:50%;background:#fff;top:3px;left:3px;transition:.2s;}
+  .toggle.on::after{left:23px;}
+  .two{display:flex;gap:10px;}
+  .two>*{flex:1;}
+  .reco{background:#eafaf0;color:#1e9e54;font-size:13px;padding:10px;border-radius:10px;font-weight:600;margin-bottom:6px;}
+  /* detail */
+  .statuslight{display:flex;align-items:center;gap:10px;background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:12px;box-shadow:var(--shadow);}
+  .dot{width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 4px rgba(0,0,0,.04);}
+  .lights{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+  .lights .li{font-size:11px;padding:3px 8px;border-radius:14px;background:#f0f3f8;color:var(--sub);}
+  .lights .li.cur{color:#fff;font-weight:700;}
+  .sec{background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:12px;box-shadow:var(--shadow);}
+  .sec h4{margin:0 0 8px;font-size:13px;color:var(--sub);font-weight:600;}
+  .kv{display:flex;justify-content:space-between;font-size:13.5px;padding:4px 0;border-bottom:1px dashed var(--line);}
+  .kv:last-child{border-bottom:0;}
+  .kv .k{color:var(--sub);}
+  .codebox{background:var(--blue-l);border-radius:10px;padding:12px;text-align:center;font-size:18px;
+    letter-spacing:3px;font-weight:700;color:var(--blue);}
+  .codebox.lock{color:var(--sub);font-size:14px;letter-spacing:1px;font-weight:600;}
+  .codebox.hide{color:var(--sub);font-size:13px;font-weight:600;}
+  .match{display:flex;justify-content:space-between;align-items:center;background:#fff;border:1px solid var(--line);
+    border-radius:12px;padding:10px 12px;margin-bottom:8px;box-shadow:var(--shadow);}
+  .match .mt{font-size:12px;color:var(--green);margin-top:4px;}
+  .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+  .egg{background:linear-gradient(135deg,#4A90E2,#9B59B6);color:#fff;text-align:center;
+    padding:14px;border-radius:14px;font-weight:700;font-size:16px;margin-bottom:12px;letter-spacing:1px;}
+  /* toast */
+  .toast{position:fixed;left:50%;top:30%;transform:translateX(-50%);background:rgba(36,48,73,.94);
+    color:#fff;padding:11px 18px;border-radius:10px;font-size:14px;z-index:99;opacity:0;transition:.25s;pointer-events:none;}
+  .toast.show{opacity:1;}
+  /* confirm */
+  .confirm .bd{text-align:center;padding:24px 16px;}
+  /* rules */
+  .rule-card{background:#fff;border-radius:12px;padding:14px;margin:12px;box-shadow:var(--shadow);}
+  .rule-card h3{margin:0 0 10px;font-size:15px;}
+  .ptable{width:100%;border-collapse:collapse;font-size:13px;}
+  .ptable th,.ptable td{border:1px solid var(--line);padding:7px;text-align:center;}
+  .ptable th{background:var(--blue-l);color:var(--blue);}
+  .badge{display:inline-block;background:var(--purple);color:#fff;font-size:11px;padding:3px 8px;border-radius:14px;margin:2px;}
+  .credits{display:flex;gap:8px;margin-top:8px;}
+  .credits .c{flex:1;background:var(--blue-l);border-radius:10px;padding:10px;text-align:center;}
+  .credits .c b{font-size:18px;color:var(--blue);display:block;}
+  .credits .c span{font-size:11px;color:var(--sub);}
+  .sharelink{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;font-size:12px;background:#f7faff;color:var(--sub);}
+  .hidden{display:none!important;}
+  .muted{color:var(--sub);font-size:12px;}
+  .vgap{height:8px;}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="topbar" id="topbar"></div>
+  <div id="view"></div>
+</div>
+
+<!-- bottom tabbar -->
+<div class="tabbar" id="tabbar">
+  <button data-view="board" class="on"><span class="ic">📋</span>看板</button>
+  <button data-view="mine"><span class="ic">👤</span>我的</button>
+  <button data-view="rules"><span class="ic">📐</span>规则</button>
+</div>
+
+<!-- FAB -->
+<div class="fab" id="fab">
+  <button class="act" id="fabShift">＋ 发顺路班次</button>
+  <button class="act" id="fabReq">＋ 发代取单</button>
+  <button class="main" id="fabMain">＋</button>
+</div>
+
+<!-- generic modal -->
+<div class="mask" id="mask">
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ 数据层 ============ */
+const STORE_KEY="shunlu-shao-v2";
+const MY_KEY="shunlu-shao-myname";
+const STATIONS=["菜鸟驿站","京东快递点","邮政代收点","妈妈驿站","丰巢柜","顺丰驿站"];
+const SIZES=["小件","中件","大件","多件","超重"];
+
+function nowISO(){return new Date().toISOString();}
+function dateStr(d){return d.toISOString().slice(0,10);}
+function fmt(dt){ if(!dt) return "—"; const d=new Date(dt); return (d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); }
+function uid(p){return p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+
+function maskCode(raw){
+  if(!raw) return "";
+  const parts=raw.split("-");
+  if(parts.length>=2) return parts.slice(0,-1).join("-")+"-****";
+  return raw.slice(0,2)+"****";
+}
+
+function load(){
+  try{return JSON.parse(localStorage.getItem(STORE_KEY));}catch(e){return null;}
+}
+function save(){
+  localStorage.setItem(STORE_KEY,JSON.stringify(DB));
+}
+let DB=load();
+let MYNAME=localStorage.getItem(MY_KEY)||"";
+
+/* 计价规则表 */
+const PRICING=[
+  {size:"小件",r1:1,r2:3,base:2},
+  {size:"中件",r1:2,r2:6,base:4},
+  {size:"大件",r1:3,r2:5,base:5},
+  {size:"多件",r1:4,r2:8,base:6},
+  {size:"超重",r1:5,r2:10,base:8},
+];
+function recommendReward(size,upstairs,extra,urgent){
+  const p=PRICING.find(x=>x.size===size)||PRICING[0];
+  let v=p.base;
+  if(upstairs) v+=2;
+  if(extra) v+=3;
+  if(urgent) v+=2;
+  return v;
+}
+
+/* 状态元信息 */
+const REQ_STATUS={
+  "待接单":{c:"#9E9E9E"},"已接单":{c:"#4A90E2"},"已取件":{c:"#F5A623"},
+  "送达中":{c:"#9B59B6"},"已完成":{c:"#2ECC71"},"异常":{c:"#E74C3C"},"已取消":{c:"#9E9E9E"}
+};
+const SHIFT_STATUS={"可接":{c:"#2ECC71"},"已满":{c:"#F5A623"},"已关闭":{c:"#9E9E9E"}};
+
+/* 状态机：仅允许逐步流转，不允许跳步 */
+const FLOW=["待接单","已接单","已取件","送达中","已完成"];
+const ACTIVE=["已接单","已取件","送达中"];
+function isValidTransition(from,to){
+  if(from===to) return false;
+  if(to==="异常") return ACTIVE.includes(from);     // 任意进行中可转异常
+  if(to==="已取消") return from==="待接单" || ACTIVE.includes(from); // 待接单取消无代价；接单后取消计爽约
+  return FLOW.indexOf(to)===FLOW.indexOf(from)+1;    // 仅允许前进一步
+}
+
+function seed(){
+  const t=new Date(); const d=dateStr(t);
+  const data={
+    shifts:[
+      {id:uid("s"),pickerName:"校园跑腿王",departTime:d+"T18:30",station:"菜鸟驿站",capacity:2,takenCount:0,area:"1号楼-3号楼",priceS:4,priceM:6,priceL:10,upstairs:true,note:"可送上楼，小件优先",status:"可接",createdAt:nowISO()},
+      {id:uid("s"),pickerName:"顺路小李",departTime:d+"T19:00",station:"京东快递点",capacity:3,takenCount:0,area:"1号楼、2号楼",priceS:1,priceM:2,priceL:3,upstairs:false,note:"只带小件",status:"可接",createdAt:nowISO()},
+      {id:uid("s"),pickerName:"快递摆渡人",departTime:d+"T17:30",station:"菜鸟驿站",capacity:1,takenCount:1,area:"3号楼",priceS:3,priceM:5,priceL:8,upstairs:true,note:"准时出发，已带满1件",status:"已满",createdAt:nowISO()},
+    ],
+    requests:[
+      {id:uid("r"),requesterName:"同学A",station:"菜鸟驿站",codeRaw:"3-2-7788",codeMask:maskCode("3-2-7788"),size:"中件",building:"3号楼",expectTime:d+"T18:30",reward:6,upstairs:true,note:"",status:"待接单",shiftId:"",createdAt:nowISO()},
+      {id:uid("r"),requesterName:"同学B",station:"京东快递点",codeRaw:"1-1-2233",codeMask:maskCode("1-1-2233"),size:"小件",building:"2号楼",expectTime:d+"T19:00",reward:3,upstairs:false,note:"",status:"已接单",shiftId:"",createdAt:nowISO()},
+      {id:uid("r"),requesterName:"同学C",station:"菜鸟驿站",codeRaw:"5-3-9911",codeMask:maskCode("5-3-9911"),size:"大件",building:"3号楼",expectTime:d+"T17:30",reward:10,upstairs:true,note:"较重，请带小推车",status:"已完成",shiftId:"",createdAt:nowISO()},
+    ],
+    orders:[
+      {id:uid("o"),requestId:"",shiftId:"",pickerName:"顺路小李",requesterName:"同学B",status:"已接单",voucherImg:"",exceptionType:"",exceptionNote:"",createdAt:nowISO(),completedAt:""},
+      {id:uid("o"),requestId:"",shiftId:"",pickerName:"快递摆渡人",requesterName:"同学C",status:"已完成",voucherImg:"",exceptionType:"",exceptionNote:"",createdAt:nowISO(),completedAt:nowISO()},
+    ],
+    credit:{}
+  };
+  // 关联示例订单
+  data.orders[0].requestId=data.requests[1].id; data.requests[1].shiftId=data.shifts[1].id; data.shifts[1].takenCount=1;
+  data.orders[1].requestId=data.requests[2].id; data.requests[2].shiftId=data.shifts[2].id;
+  // 信用示例（徽章由完成数自动推导：≥15→1024搬运工，≥5→快递摆渡人，≥1→顺路侠）
+  data.credit["校园跑腿王"]={completed:16,onTime:15,broken:0,badge:""};
+  data.credit["快递摆渡人"]={completed:8,onTime:8,broken:0,badge:""};
+  data.credit["顺路小李"]={completed:3,onTime:3,broken:0,badge:""};
+  return data;
+}
+if(!DB) { DB=seed(); save(); }
+
+/* ============ 通用 UI ============ */
+const $=s=>document.querySelector(s);
+const view=$("#view"), topbar=$("#topbar"), mask=$("#mask"), sheet=$("#sheet");
+let currentView="board";
+
+function toast(msg){
+  const t=$("#toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1800);
+}
+function openModal(html){ sheet.innerHTML=html; mask.classList.add("show"); }
+function closeModal(){ mask.classList.remove("show"); }
+mask.addEventListener("click",e=>{ if(e.target===mask) closeModal(); });
+
+function confirmBox(title,msg,cb){
+  openModal(`<div class="sheet confirm"><div class="hd">${title}<span style="cursor:pointer" onclick="closeModal()">✕</span></div>
+  <div class="bd"><p>${msg}</p>
+  <div class="two"><button class="btn ghost" onclick="closeModal()">取消</button>
+  <button class="btn warn" id="cfm">确认</button></div></div></div>`);
+  $("#cfm").onclick=()=>{ closeModal(); cb(); };
+}
+
+/* ============ 顶部 + 身份 ============ */
+function renderTop(){
+  const idTxt = MYNAME? `当前身份：<b>${MYNAME}</b> ✎` : `身份未设置（点击设置）✎`;
+  topbar.innerHTML=`<h1>🛵 顺路捎</h1><div class="sub">校园快递代取撮合板</div>
+  <div class="identity" onclick="setIdentity()">${idTxt}</div>`;
+}
+function setIdentity(){
+  const n=prompt("设置你的昵称（用于「我的」与角色判定）：",MYNAME||"");
+  if(n!==null && n.trim()){ MYNAME=n.trim(); localStorage.setItem(MY_KEY,MYNAME); toast("身份已设为："+MYNAME); renderTop(); render(); }
+}
+
+/* ============ 筛选状态 ============ */
+let filters={station:"",date:"",seg:"",size:""};
+let boardTab="shift";
+
+/* ============ 首页看板 ============ */
+function renderBoard(){
+  const segOpts=`<option value="">时间段：全部</option><option value="am">上午(&lt;12:00)</option><option value="pm">下午(12-18)</option><option value="night">晚上(≥18)</option>`;
+  const stOpts=`<option value="">驿站：全部</option>`+STATIONS.map(s=>`<option ${filters.station===s?"selected":""}>${s}</option>`).join("");
+  const szOpts=`<option value="">物件大小：全部</option>`+SIZES.map(s=>`<option ${filters.size===s?"selected":""}>${s}</option>`).join("");
+  view.innerHTML=`
+    <div class="filters">
+      <select id="fSt">${stOpts}</select>
+      <input type="date" id="fDt" value="${filters.date}"/>
+      <select id="fSeg">${segOpts}</select>
+      <select id="fSz">${szOpts}</select>
+    </div>
+    <div class="tabs">
+      <button data-tab="shift" class="${boardTab==="shift"?"on":""}">顺路班次</button>
+      <button data-tab="req" class="${boardTab==="req"?"on":""}">代取单</button>
+    </div>
+    <div class="list" id="list"></div>`;
+  $("#fSt").onchange=e=>{filters.station=e.target.value;renderBoard();};
+  $("#fDt").onchange=e=>{filters.date=e.target.value;renderBoard();};
+  $("#fSeg").onchange=e=>{filters.seg=e.target.value;renderBoard();};
+  $("#fSz").onchange=e=>{filters.size=e.target.value;renderBoard();};
+  view.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{boardTab=b.dataset.tab;renderBoard();});
+  renderList();
+}
+function segOf(dt){ const h=new Date(dt).getHours(); return h<12?"am":(h<18?"pm":"night"); }
+function passFilter(item,isShift){
+  if(filters.station && item.station!==filters.station) return false;
+  if(filters.date){
+    const idate=(isShift?item.departTime:item.expectTime).slice(0,10);
+    if(idate!==filters.date) return false;
+  }
+  if(filters.seg){
+    const s=segOf(isShift?item.departTime:item.expectTime);
+    if(s!==filters.seg) return false;
+  }
+  if(!isShift && filters.size && item.size!==filters.size) return false;
+  if(!isShift && item.status==="已取消") return false;
+  return true;
+}
+function renderList(){
+  const list=$("#list");
+  if(boardTab==="shift"){
+    const items=DB.shifts.filter(s=>passFilter(s,true));
+    if(!items.length){ list.innerHTML=`<div class="empty"><div class="ic">📦</div>暂无顺路班次<div class="tip">你正好要去驿站？顺手帮同学带个件，<br>点右下角 ＋ 发个顺路班次吧。</div><button class="btn primary" onclick="openPublishShift()">＋ 发顺路班次</button></div>`; return; }
+    list.innerHTML=items.map(s=>{
+      const st=SHIFT_STATUS[s.status];
+      return `<div class="card">
+        <div class="row"><div class="nm">${s.pickerName}</div><span class="tag" style="background:${st.c}">${s.status}</span></div>
+        <div class="meta">
+          <span>🕒 ${fmt(s.departTime)}</span><span>📍 ${s.station}</span>
+          <span>🎒 可带${s.capacity}件</span><span>🏠 ${s.area}</span>
+        </div>
+        <div class="meta"><span>小¥${s.priceS} 中¥${s.priceM} 大¥${s.priceL}</span>${s.upstairs?'<span>🛗 可上楼</span>':''}</div>
+        ${s.note?`<div class="note">备注：${s.note}</div>`:""}
+        <div class="foot"><span class="price">参考价 ¥${s.priceS}起</span>
+          <button class="btn ${s.status==="可接"?"primary":"ghost"}" ${s.status!=="可接"?"disabled":""} onclick="openShiftDetail('${s.id}')">查看</button></div>
+      </div>`;
+    }).join("");
+  } else {
+    const items=DB.requests.filter(r=>passFilter(r,false));
+    if(!items.length){ list.innerHTML=`<div class="empty"><div class="ic">🔍</div>暂无代取单<div class="tip">急需取件又走不开？<br>点右下角 ＋ 发个代取单，立刻有人顺路帮你带。</div><button class="btn primary" onclick="openPublishReq()">＋ 发代取单</button></div>`; return; }
+    list.innerHTML=items.map(r=>{
+      const st=REQ_STATUS[r.status];
+      return `<div class="card">
+        <div class="row"><div class="nm">${r.requesterName}</div><span class="tag" style="background:${st.c}">${r.status}</span></div>
+        <div class="meta">
+          <span>📍 ${r.station}</span><span>📦 ${r.size}</span>
+          <span>🏠 ${r.building}</span><span>⏰ ${fmt(r.expectTime)}前</span>
+        </div>
+        ${r.note?`<div class="note">备注：${r.note}</div>`:""}
+        <div class="foot"><span class="price">悬赏 ¥${r.reward}</span>
+          <button class="btn primary" onclick="openReqDetail('${r.id}')">查看详情</button></div>
+      </div>`;
+    }).join("");
+  }
+}
+
+/* ============ 发布：顺路班次 ============ */
+function openPublishShift(){
+  const stOpts=STATIONS.map(s=>`<option>${s}</option>`).join("");
+  const d=dateStr(new Date());
+  openModal(`<div class="hd">发顺路班次 <span style="cursor:pointer" onclick="closeModal()">✕</span></div>
+  <div class="bd">
+    <div class="field"><label>代取者昵称 <span class="req">*</span></label><input id="pName" placeholder="如：顺路小李" value="${MYNAME}"><div class="err" id="eName">请填写昵称</div></div>
+    <div class="field"><label>出发时间 <span class="req">*</span></label><input type="datetime-local" id="pDep" value="${d}T18:30"><div class="err" id="eDep">时间不能早于当前时间</div></div>
+    <div class="field"><label>驿站/快递点 <span class="req">*</span></label><select id="pSt">${stOpts}</select></div>
+    <div class="field"><label>可带件数（1-5） <span class="req">*</span></label><input type="number" id="pCap" min="1" max="5" value="2"><div class="err" id="eCap">件数必须为 1-5 正整数</div></div>
+    <div class="field"><label>可送达区域 <span class="req">*</span></label><input id="pArea" placeholder="如：1-3号楼 / 东区宿舍"><div class="err" id="eArea">请填写送达区域</div></div>
+    <div class="two">
+      <div class="field"><label>小件参考价(元)</label><input type="number" id="pS" min="0" value="1"></div>
+      <div class="field"><label>中件参考价(元)</label><input type="number" id="pM" min="0" value="2"></div>
+    </div>
+    <div class="field"><label>大件参考价(元起)</label><input type="number" id="pL" min="0" value="3"></div>
+    <div class="field"><label>是否可送上楼</label><div class="switch"><span>可送上楼（加 1-2 元）<span class="hint"></span></span><div class="toggle" id="pUp"></div></div></div>
+    <div class="field"><label>备注（选填）</label><textarea id="pNote" rows="2" placeholder="如：只带小件"></textarea></div>
+    <div class="field"><label>联系方式展示</label><select id="pContact"><option>隐藏手机号，仅站内联系</option><option>仅展示后四位</option></select></div>
+    <div class="two"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn primary" onclick="submitShift()">发布班次</button></div>
+  </div>`);
+  bindToggle($("#pUp"),false);
+}
+function submitShift(){
+  const name=$("#pName").value.trim();
+  const dep=$("#pDep").value;
+  const cap=parseInt($("#pCap").value);
+  let ok=true;
+  if(!name){showErr("pName","eName",true);ok=false;}else showErr("pName","eName",false);
+  if(!dep || new Date(dep).getTime()<Date.now()){showErr("pDep","eDep",true);ok=false;}else showErr("pDep","eDep",false);
+  if(!(cap>=1&&cap<=5)){showErr("pCap","eCap",true);ok=false;}else showErr("pCap","eCap",false);
+  const area=$("#pArea").value.trim();
+  if(!area){showErr("pArea","eArea",true);ok=false;}else showErr("pArea","eArea",false);
+  if(!ok) return;
+  const s={
+    id:uid("s"),pickerName:name,departTime:dep,station:$("#pSt").value,capacity:cap,takenCount:0,
+    area:area,priceS:Math.max(0,+$("#pS").value||0),priceM:Math.max(0,+$("#pM").value||0),
+    priceL:Math.max(0,+$("#pL").value||0),upstairs:$("#pUp").classList.contains("on"),
+    note:$("#pNote").value.trim(),status:"可接",createdAt:nowISO()
+  };
+  DB.shifts.unshift(s); save();
+  if(MYNAME!==name){MYNAME=name;localStorage.setItem(MY_KEY,MYNAME);renderTop();}
+  boardTab="shift"; closeModal(); toast("班次已发布 🎉"); render();
+}
+
+/* ============ 发布：代取单 ============ */
+function openPublishReq(){
+  const stOpts=STATIONS.map(s=>`<option ${s==="菜鸟驿站"?"selected":""}>${s}</option>`).join("");
+  const d=dateStr(new Date());
+  openModal(`<div class="hd">发代取单 <span style="cursor:pointer" onclick="closeModal()">✕</span></div>
+  <div class="bd">
+    <div class="field"><label>需求者昵称 <span class="req">*</span></label><input id="rName" placeholder="如：同学A" value="${MYNAME}"><div class="err" id="eName">请填写昵称</div></div>
+    <div class="field"><label>取件驿站 <span class="req">*</span></label><select id="rSt">${stOpts}</select></div>
+    <div class="field"><label>取件码 <span class="req">*</span></label><input id="rCode" placeholder="输入后自动脱敏，如 3-2-7788"><div class="err" id="eCode">请填写取件码</div><div class="reco hidden" id="codeMask"></div></div>
+    <div class="field"><label>物件大小 <span class="req">*</span></label><select id="rSize">${SIZES.map(s=>`<option>${s}</option>`).join("")}</select></div>
+    <div class="field"><label>送达楼栋 <span class="req">*</span></label><input id="rBld" placeholder="如：3号楼"><div class="err" id="eBld">请填写送达楼栋</div></div>
+    <div class="field"><label>期望送达时间 <span class="req">*</span></label><input type="datetime-local" id="rExp" value="${d}T19:00"><div class="err" id="eExp">时间不能早于当前时间</div></div>
+    <div class="field"><label>悬赏价（参考价，线下结算）</label>
+      <div class="reco" id="reco">推荐悬赏：¥—（参考价，不支付）</div></div>
+    <div class="field"><label>是否送上楼</label><div class="switch"><span>需送上楼（加 1-2 元）</span><div class="toggle" id="rUp"></div></div></div>
+    <div class="field"><label>加价项</label><div class="switch"><span>多件/超重</span><div class="toggle" id="rExtra"></div></div>
+      <div class="switch" style="margin-top:8px"><span>急单/恶劣天气</span><div class="toggle" id="rUrgent"></div></div></div>
+    <div class="field"><label>备注（选填）</label><textarea id="rNote" rows="2" placeholder="如：易碎、较重"></textarea></div>
+    <div class="two"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn primary" onclick="submitReq()">发布代取单</button></div>
+  </div>`);
+  bindToggle($("#rUp"),false); bindToggle($("#rExtra"),false); bindToggle($("#rUrgent"),false);
+  const calc=()=>{
+    const v=recommendReward($("#rSize").value,$("#rUp").classList.contains("on"),$("#rExtra").classList.contains("on"),$("#rUrgent").classList.contains("on"));
+    $("#reco").textContent=`推荐悬赏：¥${v}（参考价，不支付）`;
+  };
+  $("#rSize").onchange=calc; $("#rUp").onclick=calc; $("#rExtra").onclick=calc; $("#rUrgent").onclick=calc; calc();
+  $("#rCode").oninput=e=>{
+    const v=e.target.value.trim();
+    if(v){ $("#codeMask").classList.remove("hidden"); $("#codeMask").textContent="脱敏预览："+maskCode(v); }
+    else $("#codeMask").classList.add("hidden");
+  };
+}
+function submitReq(){
+  const name=$("#rName").value.trim();
+  const code=$("#rCode").value.trim();
+  const bld=$("#rBld").value.trim();
+  const exp=$("#rExp").value;
+  let ok=true;
+  if(!name){showErr("rName","eName",true);ok=false;}else showErr("rName","eName",false);
+  if(!code){showErr("rCode","eCode",true);ok=false;}else showErr("rCode","eCode",false);
+  if(!bld){showErr("rBld","eBld",true);ok=false;}else showErr("rBld","eBld",false);
+  if(!exp || new Date(exp).getTime()<Date.now()){showErr("rExp","eExp",true);ok=false;}else showErr("rExp","eExp",false);
+  if(!ok) return;
+  const reward=recommendReward($("#rSize").value,$("#rUp").classList.contains("on"),$("#rExtra").classList.contains("on"),$("#rUrgent").classList.contains("on"));
+  const r={
+    id:uid("r"),requesterName:name,station:$("#rSt").value,codeRaw:code,codeMask:maskCode(code),
+    size:$("#rSize").value,building:bld,expectTime:exp,reward:reward,
+    upstairs:$("#rUp").classList.contains("on"),note:$("#rNote").value.trim(),
+    status:"待接单",shiftId:"",createdAt:nowISO()
+  };
+  DB.requests.unshift(r); save();
+  if(MYNAME!==name){MYNAME=name;localStorage.setItem(MY_KEY,MYNAME);renderTop();}
+  boardTab="req"; closeModal(); toast("代取单已发布 🎉"); render();
+}
+
+/* ============ 班次详情 ============ */
+function openShiftDetail(id){
+  const s=DB.shifts.find(x=>x.id===id); if(!s) return;
+  const st=SHIFT_STATUS[s.status];
+  openModal(`<div class="hd">顺路班次 <span style="cursor:pointer" onclick="closeModal()">✕</span></div>
+  <div class="bd">
+    <div class="statuslight"><span class="dot" style="background:${st.c}"></span><div><div style="font-weight:700">${s.status}</div><div class="muted">${s.pickerName}</div></div></div>
+    <div class="sec"><h4>班次信息</h4>
+      <div class="kv"><span class="k">出发时间</span><span>${fmt(s.departTime)}</span></div>
+      <div class="kv"><span class="k">驿站</span><span>${s.station}</span></div>
+      <div class="kv"><span class="k">可带件数</span><span>${s.capacity} 件（已接 ${s.takenCount}）</span></div>
+      <div class="kv"><span class="k">送达区域</span><span>${s.area}</span></div>
+      <div class="kv"><span class="k">参考价</span><span>小¥${s.priceS} 中¥${s.priceM} 大¥${s.priceL}${s.upstairs?" · 可上楼":""}</span></div>
+      <div class="kv"><span class="k">联系方式</span><span>隐藏手机号，仅站内联系</span></div>
+      ${s.note?`<div class="kv"><span class="k">备注</span><span>${s.note}</span></div>`:""}
+    </div>
+    <div class="muted" style="text-align:center;margin-top:8px">群内顺路运力，线下结算，平台不碰支付。</div>
+  </div>`);
+}
+
+/* ============ 代取单详情 + 状态推进 ============ */
+function matchShifts(r){
+  return DB.shifts.filter(s=>s.status==="可接")   // 仅可接且有余量的班次参与推荐
+    .map(s=>{
+      const dep=new Date(s.departTime).getTime(), exp=new Date(r.expectTime).getTime();
+      // 时间窗：出发时间在期望时间前30分钟内（含期望时刻）
+      const inWindow = dep<=exp && dep>=exp-30*60000;
+      const sameStation = s.station===r.station;
+      const areaMatch = s.area===r.building || s.area.includes(r.building.slice(0,2)) || r.building.includes(s.area.slice(0,2));
+      const remaining = s.capacity - s.takenCount;          // 剩余容量
+      const price = ({小件:s.priceS,中件:s.priceM,大件:s.priceL,多件:s.priceL,超重:s.priceL})[r.size]||s.priceS;
+      return {s, sameStation, inWindow, areaMatch, remaining, price};
+    })
+    // 排序优先级：同驿站 > 时间窗 > 送达区域 > 剩余容量(多优先) > 价格(低优先)
+    .sort((a,b)=>{
+      if(a.sameStation!==b.sameStation) return a.sameStation?-1:1;
+      if(a.inWindow!==b.inWindow)       return a.inWindow?-1:1;
+      if(a.areaMatch!==b.areaMatch)     return a.areaMatch?-1:1;
+      if(b.remaining!==a.remaining)     return b.remaining-a.remaining;
+      return a.price-b.price;
+    });
+}
+function openReqDetail(id,readonly){
+  const r=DB.requests.find(x=>x.id===id); if(!r) return;
+  const order=DB.orders.find(o=>o.requestId===id);
+  const shift=DB.shifts.find(s=>s.id===r.shiftId);
+  const st=REQ_STATUS[r.status];
+  const isRequester=MYNAME && r.requesterName===MYNAME;
+  const isPicker=MYNAME && order && order.pickerName===MYNAME;
+  // 取件码可见性
+  let codeHTML;
+  if(r.status==="待接单"||r.status==="异常") codeHTML=`<div class="codebox lock">🔒 接单后可见</div>`;
+  else if(r.status==="已完成") codeHTML=`<div class="codebox hide">🙈 订单已完成，取件码已隐藏</div>`;
+  else codeHTML=`<div class="codebox">${r.codeMask}</div>`;
+  // 状态灯
+  const flow=["待接单","已接单","已取件","送达中","已完成"];
+  const lights=flow.map(f=>{
+    const cur=(r.status===f)||(f==="已接单"&&r.status==="异常"&&false);
+    const done=flow.indexOf(r.status)>=flow.indexOf(f)&&r.status!=="异常";
+    const cls=cur?"cur":"";
+    const color=r.status==="异常"?"#E74C3C":(done?REQ_STATUS[f].c:"#f0f3f8");
+    return `<span class="li ${cls}" style="${cls?`background:${color}`:""}">${f}</span>`;
+  }).join("");
+  let html=`<div class="hd">代取单详情 <span style="cursor:pointer" onclick="closeModal()">✕</span></div><div class="bd">`;
+  if(r.status==="已完成") html+=`<div class="egg">🎉 1024，顺路成功 🚀</div>`;
+  html+=`<div class="statuslight"><span class="dot" style="background:${st.c}"></span>
+    <div><div style="font-weight:700">${r.status}</div><div class="muted">${r.requesterName} 的代取单</div></div></div>
+    <div class="lights">${lights}${r.status==="异常"?'<span class="li cur" style="background:#E74C3C">异常</span>':""}</div>`;
+  // 代取单信息
+  html+=`<div class="sec"><h4>代取单信息</h4>
+    <div class="kv"><span class="k">驿站</span><span>${r.station}</span></div>
+    <div class="kv"><span class="k">物件大小</span><span>${r.size}${r.upstairs?" · 需上楼":""}</span></div>
+    <div class="kv"><span class="k">送达楼栋</span><span>${r.building}</span></div>
+    <div class="kv"><span class="k">期望时间</span><span>${fmt(r.expectTime)}前</span></div>
+    <div class="kv"><span class="k">悬赏价</span><span>¥${r.reward}（参考，线下结算）</span></div>
+    ${r.note?`<div class="kv"><span class="k">备注</span><span>${r.note}</span></div>`:""}
+  </div>`;
+  // 取件码
+  html+=`<div class="sec"><h4>取件码${r.status!=="待接单"&&r.status!=="已完成"&&r.status!=="异常"?"（已脱敏）":""}</h4>${codeHTML}</div>`;
+  // 班次信息
+  if(shift){
+    html+=`<div class="sec"><h4>顺路班次信息</h4>
+      <div class="kv"><span class="k">代取者</span><span>${shift.pickerName}</span></div>
+      <div class="kv"><span class="k">出发时间</span><span>${fmt(shift.departTime)}</span></div>
+      <div class="kv"><span class="k">可带件数</span><span>${shift.capacity}（已接${shift.takenCount}）</span></div>
+      <div class="kv"><span class="k">参考价</span><span>小¥${shift.priceS} 中¥${shift.priceM} 大¥${shift.priceL}</span></div>
+    </div>`;
+  }
+  // 凭证
+  if(order && order.voucherImg && (isRequester||isPicker)){
+    html+=`<div class="sec"><h4>凭证（仅相关人可见）</h4><img src="${order.voucherImg}" style="width:100%;border-radius:10px"/></div>`;
+  }
+  if(r.status==="异常" && order){
+    html+=`<div class="sec"><h4>异常说明</h4><div class="muted">${order.exceptionType||""}：${order.exceptionNote||""}</div></div>`;
+  }
+  // 匹配班次（待接单时）
+  if(r.status==="待接单" && !readonly){
+    const ms=matchShifts(r);
+    html+=`<div class="sec"><h4>推荐顺路班次（按驿站/时间/区域/余量/价优）</h4>`;
+    if(!ms.length) html+=`<div class="muted">暂无完全匹配，可扩大时间范围或发一个班次。</div>`;
+    ms.forEach(m=>{
+      const tags=[];
+      if(m.sameStation) tags.push("同驿站");
+      if(m.inWindow)    tags.push("时间窗匹配");
+      if(m.areaMatch)   tags.push("区域匹配");
+      tags.push("余"+m.remaining+"件");
+      tags.push("¥"+m.price);
+      html+=`<div class="match"><div><div style="font-weight:600">${m.s.pickerName} · ${fmt(m.s.departTime)}</div>
+        <div class="mt">${m.s.area} · ${tags.join(" / ")}</div></div>
+        <button class="btn primary" onclick="acceptReq('${r.id}','${m.s.id}')">接单</button></div>`;
+    });
+    html+=`</div>`;
+  }
+  // 操作按钮
+  html+=`<div class="sec"><h4>操作</h4><div class="acts">`;
+  if(!readonly){
+    if(r.status==="待接单" && isRequester){
+      html+=`<button class="btn warn" onclick="cancelReq('${r.id}')">取消订单</button>`;
+    }
+    if(isPicker){
+      if(r.status==="已接单") html+=`<button class="btn primary" onclick="advance('${r.id}','已取件')">已取件</button>`;
+      if(r.status==="已取件") html+=`<button class="btn primary" onclick="advance('${r.id}','送达中')">送达中</button>`;
+      if(r.status==="送达中") html+=`<button class="btn green" onclick="completeReq('${r.id}')">已完成（上传凭证）</button>`;
+      if(["已接单","已取件","送达中"].includes(r.status)) html+=`<button class="btn warn" onclick="reportExp('${r.id}')">上报异常</button>`;
+      if(r.requesterName) html+=`<button class="btn ghost" onclick="toast('已发送站内联系请求（演示）')">联系需求者</button>`;
+    }
+    if(isRequester){
+      if(r.status==="送达中") html+=`<button class="btn green" onclick="confirmDone('${r.id}')">确认完成</button>`;
+      if(r.status==="已完成") html+=`<button class="btn green" disabled>已确认✓</button>`;
+      if(order && order.pickerName) html+=`<button class="btn ghost" onclick="toast('已发送站内联系请求（演示）')">联系代取者</button>`;
+    }
+    if(["已接单","已取件","送达中"].includes(r.status)){
+      html+=`<button class="btn warn" onclick="confirmCancelAccepted('${r.id}')">取消接单（计爽约）</button>`;
+    }
+    if(!isRequester && !isPicker && r.status==="待接单"){
+      html+=`<div class="muted">你是访客视角。设置身份为代取者或需求者可操作。</div>`;
+    }
+  } else {
+    html+=`<div class="muted">🔗 分享查看模式（只读，始终显示最新状态）</div>`;
+  }
+  html+=`</div></div>`;
+  // 分享
+  html+=`<div class="sec"><h4>分享给群（点开始终显示最新状态）</h4>
+    <input class="sharelink" id="slk" readonly value="${location.origin+location.pathname}?r=${r.id}">
+    <div class="two" style="margin-top:8px"><button class="btn ghost" onclick="copyLink('${r.id}')">复制链接</button>
+    <button class="btn ghost" onclick="toast('二维码演示：可用任意二维码工具扫描上方链接')">二维码(演示)</button></div>
+  </div>`;
+  html+=`</div>`;
+  openModal(html);
+}
+
+/* 接单 */
+function acceptReq(reqId,shiftId){
+  const r=DB.requests.find(x=>x.id===reqId); const s=DB.shifts.find(x=>x.id===shiftId);
+  if(!r||!s||r.status!=="待接单") return;
+  r.status="已接单"; r.shiftId=shiftId;
+  s.takenCount++; if(s.takenCount>=s.capacity) s.status="已满";
+  const order={id:uid("o"),requestId:reqId,shiftId:shiftId,pickerName:s.pickerName,requesterName:r.requesterName,status:"已接单",voucherImg:"",exceptionType:"",exceptionNote:"",createdAt:nowISO(),completedAt:""};
+  DB.orders.push(order); save();
+  toast("接单成功，取件码已脱敏可见 🔓"); closeModal(); openReqDetail(reqId);
+}
+/* 状态推进 */
+function advance(reqId,next){
+  const r=DB.requests.find(x=>x.id===reqId); const o=DB.orders.find(x=>x.requestId===reqId);
+  if(!r||!o) return;
+  if(!isValidTransition(r.status,next)){ toast("状态流转不合法，不能跳步"); return; }
+  r.status=next; o.status=next; save(); toast("状态："+next); closeModal(); openReqDetail(reqId);
+}
+function completeReq(reqId){
+  openModal(`<div class="hd">上传送达凭证 <span style="cursor:pointer" onclick="closeModal()">✕</span></div>
+  <div class="bd"><div class="field"><label>送达照片/凭证（选填）</label><input type="file" id="vf" accept="image/*"></div>
+  <div class="two"><button class="btn ghost" onclick="closeModal();openReqDetail('${reqId}')">取消</button>
+  <button class="btn green" onclick="doComplete('${reqId}')">标记已完成</button></div></div>`);
+}
+function doComplete(reqId){
+  const r=DB.requests.find(x=>x.id===reqId); const o=DB.orders.find(x=>x.requestId===reqId);
+  const f=$("#vf");
+  if(f && f.files && f.files[0]){
+    const rd=new FileReader(); rd.onload=()=>{ o.voucherImg=rd.result; finishComplete(r,o); };
+    rd.readAsDataURL(f.files[0]);
+  } else { finishComplete(r,o); }
+}
+function finishComplete(r,o){
+  if(!isValidTransition(r.status,"已完成")){ toast("状态流转不合法，不能跳步"); return; }
+  r.status="已完成"; o.status="已完成"; o.completedAt=nowISO();
+  // 信用更新
+  const c=DB.credit[r.requesterName]||{completed:0,onTime:0,broken:0,badge:""};
+  c.completed++; if(new Date(o.completedAt)<=new Date(r.expectTime)) c.onTime++;
+  DB.credit[r.requesterName]=c;
+  const pc=DB.credit[o.pickerName]||{completed:0,onTime:0,broken:0,badge:""};
+  pc.completed++; if(new Date(o.completedAt)<=new Date(r.expectTime)) pc.onTime++;
+  DB.credit[o.pickerName]=pc;
+  save(); toast("已完成，1024 顺路成功 🚀"); closeModal(); openReqDetail(r.id);
+}
+function confirmDone(reqId){
+  const r=DB.requests.find(x=>x.id===reqId); const o=DB.orders.find(x=>x.requestId===reqId);
+  if(r.status==="已完成"){ toast("需求者已确认完成 ✓"); closeModal(); openReqDetail(reqId); return; }
+  if(!isValidTransition(r.status,"已完成")){ toast("请代取者先推进到「送达中」后再确认"); return; }
+  r.status="已完成"; o.status="已完成"; o.completedAt=o.completedAt||nowISO(); save();
+  toast("需求者已确认完成 ✓"); closeModal(); openReqDetail(reqId);
+}
+function cancelReq(reqId){
+  confirmBox("取消订单","待接单的代取单可取消，确定取消？",()=>{
+    const r=DB.requests.find(x=>x.id===reqId);
+    if(r.status!=="待接单"){toast("仅待接单可取消");return;}
+    r.status="已取消"; save(); toast("订单已取消"); closeModal(); render();
+  });
+}
+/* 取消已接订单（有代价：记 1 次爽约，班次容量回退） */
+function confirmCancelAccepted(reqId){
+  confirmBox("取消已接订单","接单后取消将记为 1 次爽约（影响信用徽章），且班次容量回退，确定取消？",()=>doCancelAccepted(reqId));
+}
+function doCancelAccepted(reqId){
+  const r=DB.requests.find(x=>x.id===reqId); const o=DB.orders.find(x=>x.requestId===reqId);
+  if(!r||!o) return;
+  if(!["已接单","已取件","送达中"].includes(r.status)){ toast("当前状态不可取消"); return; }
+  if(r.shiftId){ const s=DB.shifts.find(x=>x.id===r.shiftId); if(s){ s.takenCount=Math.max(0,s.takenCount-1); if(s.status==="已满"&&s.takenCount<s.capacity) s.status="可接"; } }
+  if(o.pickerName){ const c=DB.credit[o.pickerName]||(DB.credit[o.pickerName]={completed:0,onTime:0,broken:0,badge:""}); c.broken++; }
+  r.status="已取消"; o.status="已取消"; save();
+  toast("已取消，代取者记 1 次爽约 ⚠️"); closeModal(); openReqDetail(reqId);
+}
+function reportExp(reqId){
+  openModal(`<div class="hd">上报异常 <span style="cursor:pointer" onclick="closeModal()">✕</span></div>
+  <div class="bd"><div class="field"><label>异常类型</label><select id="et">
+    <option>取件失败</option><option>超时</option><option>联系不上</option><option>物品损坏</option></select></div>
+  <div class="field"><label>说明</label><textarea id="en" rows="3" placeholder="补充情况"></textarea></div>
+  <div class="two"><button class="btn ghost" onclick="closeModal();openReqDetail('${reqId}')">取消</button>
+  <button class="btn warn" onclick="confirmExp('${reqId}')">提交异常</button></div></div>`);
+}
+function confirmExp(reqId){
+  confirmBox("上报异常","状态将变更为「异常」并通知对方，确定提交？",()=>doExp(reqId));
+}
+function doExp(reqId){
+  const r=DB.requests.find(x=>x.id===reqId); const o=DB.orders.find(x=>x.requestId===reqId);
+  r.status="异常"; o.status="异常"; o.exceptionType=$("#et").value; o.exceptionNote=$("#en").value.trim();
+  save(); toast("已上报异常"); closeModal(); openReqDetail(reqId);
+}
+function copyLink(id){
+  const link=location.origin+location.pathname+"?r="+id;
+  navigator.clipboard?.writeText(link); toast("链接已复制，可发群 🔗");
+}
+
+/* ============ 我的 ============ */
+function badgeOf(name){
+  const c=DB.credit[name]; if(!c) return "";
+  if(c.completed>=15) return "1024搬运工";
+  if(c.completed>=5) return "快递摆渡人";
+  if(c.completed>=1) return "顺路侠";
+  return "";
+}
+function renderMine(){
+  if(!MYNAME){ view.innerHTML=`<div class="empty"><div class="ic">👤</div>未设置身份，点击右上角设置昵称后查看「我的」。</div>`; return; }
+  const myReq=DB.requests.filter(r=>r.requesterName===MYNAME);
+  const myPick=DB.requests.filter(r=>{const o=DB.orders.find(x=>x.requestId===r.id);return o&&o.pickerName===MYNAME;});
+  const myShift=DB.shifts.filter(s=>s.pickerName===MYNAME);
+  const c=DB.credit[MYNAME]||{completed:0,onTime:0,broken:0};
+  const thanks=Math.min(c.completed,9);
+  const card=(title,arr,kind)=>{
+    if(!arr.length) return `<div class="rule-card"><h3>${title}</h3><div class="muted">暂无记录</div></div>`;
+    return `<div class="rule-card"><h3>${title}（${arr.length}）</h3>`+arr.map(r=>{
+      const st=REQ_STATUS[r.status]||SHIFT_STATUS[r.status];
+      let btn="";
+      if(kind==="req") btn=`<button class="btn ghost" onclick="openReqDetail('${r.id}')">查看</button>`;
+      if(kind==="pick") btn=`<button class="btn ghost" onclick="openReqDetail('${r.id}')">推进</button>`;
+      if(kind==="shift") btn=`<button class="btn ghost" onclick="openShiftDetail('${r.id}')">查看</button>`;
+      const sub=kind==="shift"?`${fmt(r.departTime)} · ${r.station}`:`${r.station} · ${r.status}`;
+      const other=kind==="req"?"":(kind==="pick"?(DB.orders.find(o=>o.requestId===r.id)?.requesterName||""):"");
+      return `<div class="match"><div><div style="font-weight:600">${kind==="shift"?r.pickerName:r.requesterName} ${other?("· "+other):""}</div>
+        <div class="mt">${sub}</div></div><span class="tag" style="background:${st.c}">${r.status}</span>${btn}</div>`;
+    }).join("")+`</div>`;
+  };
+  view.innerHTML=`
+    <div class="rule-card">
+      <h3>👤 ${MYNAME}</h3>
+      <div>信用徽章：${badgeOf(MYNAME)?`<span class="badge">${badgeOf(MYNAME)}</span>`:`<span class="muted">完成首单解锁「顺路侠」</span>`}</div>
+      <div class="credits">
+        <div class="c"><b>${c.completed}</b><span>完成单数</span></div>
+        <div class="c"><b>${c.onTime}</b><span>准时数</span></div>
+        <div class="c"><b>${c.broken}</b><span>爽约次数</span></div>
+        <div class="c"><b>${thanks}</b><span>获得感谢</span></div>
+      </div>
+    </div>
+    ${card("我发的代取单",myReq,"req")}
+    ${card("我接的单",myPick,"pick")}
+    ${card("我发布的班次",myShift,"shift")}
+  `;
+}
+
+/* ============ 规则 ============ */
+function renderRules(){
+  view.innerHTML=`
+    <div class="rule-card">
+      <h3>📐 参考价表</h3>
+      <table class="ptable"><tr><th>物件大小</th><th>参考价区间</th><th>送上楼</th><th>多件/超重</th><th>急单/恶劣天气</th></tr>
+      ${PRICING.map(p=>`<tr><td>${p.size}</td><td>¥${p.r1}-${p.r2}</td><td>+1~2</td><td>+3起</td><td>+2</td></tr>`).join("")}
+      </table>
+      <div class="muted" style="margin-top:8px">仅为参考价，线下结算或标记「已付」，平台不碰支付。</div>
+    </div>
+    <div class="rule-card">
+      <h3>🔒 隐私说明</h3>
+      <p class="muted">· 取件码接单前隐藏，接单后脱敏展示，完成后隐藏。<br>
+      · 手机号默认隐藏，仅展示后四位或站内联系入口。<br>
+      · 仅本人授权的代取者可见取件码与凭证。</p>
+    </div>
+    <div class="rule-card">
+      <h3>⚠️ 免责声明</h3>
+      <p class="muted">顺路捎仅提供群聊场景下的顺路运力信息撮合，不参与在线支付、不参与实际配送，不对快递物品负责。请当面验收、线下结算。</p>
+    </div>
+    <div class="rule-card">
+      <h3>🚀 状态流转</h3>
+      <p class="muted">代取单：待接单 → 已接单 → 已取件 → 送达中 → 已完成；任意进行中可转「异常」；待接单可取消。<br>
+      顺路班次：可接 → 已满 / 已关闭。</p>
+    </div>`;
+}
+
+/* ============ 渲染调度 ============ */
+function render(){
+  renderTop();
+  if(currentView==="board"){ renderBoard(); }
+  else if(currentView==="mine"){ renderMine(); }
+  else if(currentView==="rules"){ renderRules(); }
+  document.querySelectorAll(".tabbar button").forEach(b=>b.classList.toggle("on",b.dataset.view===currentView));
+  $("#fab").style.display = currentView==="board" ? "flex":"none";
+}
+document.querySelectorAll(".tabbar button").forEach(b=>{
+  b.onclick=()=>{ currentView=b.dataset.view; render(); };
+});
+/* FAB */
+$("#fabMain").onclick=()=>{
+  $("#fabShift").classList.toggle("show"); $("#fabReq").classList.toggle("show");
+};
+$("#fabShift").onclick=()=>{ $("#fabShift").classList.remove("show");$("#fabReq").classList.remove("show"); openPublishShift(); };
+$("#fabReq").onclick=()=>{ $("#fabShift").classList.remove("show");$("#fabReq").classList.remove("show"); openPublishReq(); };
+
+/* 工具 */
+function bindToggle(el,init){ el.onclick=()=>el.classList.toggle("on"); if(init)el.classList.add("on"); }
+function showErr(inputId,errId,bad){ const i=$(("#"+inputId)),e=$(("#"+errId)); if(i)i.classList.toggle("bad",bad); if(e)e.classList.toggle("show",bad); }
+
+/* 分享链接打开 */
+(function(){
+  const params=new URLSearchParams(location.search);
+  const r=params.get("r");
+  if(r){ render(); openReqDetail(r,true); }
+  else render();
+})();
+</script>
+</body>
+</html>
